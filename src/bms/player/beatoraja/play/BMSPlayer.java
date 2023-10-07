@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
-import bms.player.beatoraja.config.Discord;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 
@@ -95,8 +94,6 @@ public class BMSPlayer extends MainState {
 
 	private RhythmTimerProcessor rhythm;
 	private long startpressedtime;
-
-	public static Discord discord;
 
 	public BMSPlayer(MainController main, PlayerResource resource) {
 		super(main);
@@ -404,9 +401,6 @@ public class BMSPlayer extends MainState {
 		final int difficulty = resource.getSongdata() != null ? resource.getSongdata().getDifficulty() : 0;
 		resource.getSongdata().setBMSModel(model);
 		resource.getSongdata().setDifficulty(difficulty);
-
-		discord = Discord.playingSong(resource.getSongdata().getFullTitle(), resource.getSongdata().getArtist(), resource.getSongdata().getMode());
-		discord.update();
 	}
 
 	public SkinType getSkinType() {
@@ -506,11 +500,26 @@ public class BMSPlayer extends MainState {
 		if(input.startPressed() || input.isSelectPressed()){
 			startpressedtime = micronow;
 		}
+		
+
 		switch (state) {
 		// 楽曲ロード
 		case STATE_PRELOAD:
+			if(config.isChartPreview()) {
+				if(timer.isTimerOn(TIMER_PLAY) && micronow > startpressedtime) {
+					timer.setTimerOff(TIMER_PLAY);
+					lanerender.init(model);					
+				} else if(!timer.isTimerOn(TIMER_PLAY) && micronow == startpressedtime){
+					timer.setMicroTimer(TIMER_PLAY, micronow - starttimeoffset * 1000);				
+				}				
+			}
+			
 			if (resource.mediaLoadFinished() && micronow > (skin.getLoadstart() + skin.getLoadend()) * 1000
 					&& micronow - startpressedtime > 1000000) {
+				if(config.isChartPreview()) {
+					timer.setTimerOff(TIMER_PLAY);
+					lanerender.init(model);					
+				}
 				bga.prepare(this);
 				final long mem = Runtime.getRuntime().freeMemory();
 				System.gc();
@@ -936,6 +945,7 @@ public class BMSPlayer extends MainState {
 //		System.out.println(avgduration + " / " + count + " = " + score.getAvgjudge());
 
 		score.setDeviceType(main.getInputProcessor().getDeviceType());
+		score.setSkin(getSkin().header.getName());
 		return score;
 	}
 

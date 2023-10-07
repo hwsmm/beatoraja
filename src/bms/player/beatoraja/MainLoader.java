@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 
 import javax.swing.JOptionPane;
 
-import bms.player.beatoraja.config.Discord;
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
@@ -43,8 +42,6 @@ public class MainLoader extends Application {
 	private static Path bmsPath;
 
 	private static VersionChecker version;
-
-	public static Discord discord;
 
 	public static void main(String[] args) {
 
@@ -105,11 +102,6 @@ public class MainLoader extends Application {
 	public static void play(Path bmsPath, BMSPlayerMode playerMode, Config config, PlayerConfig player, boolean songUpdated) {
 		if(config == null) {
 			config = Config.read();
-		}
-
-		if(config.isUseDiscordRPC()) {
-			discord = new Discord("", "");
-			discord.startup();
 		}
 
 		for(SongData song : getScoreDatabaseAccessor().getSongDatas(SongUtils.illegalsongs)) {

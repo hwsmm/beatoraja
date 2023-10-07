@@ -8,8 +8,6 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-import bms.player.beatoraja.config.Discord;
-
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -39,6 +37,7 @@ import bms.player.beatoraja.select.bar.TableBar;
 import bms.player.beatoraja.skin.SkinLoader;
 import bms.player.beatoraja.skin.SkinObject.SkinOffset;
 import bms.player.beatoraja.skin.SkinProperty;
+import bms.player.beatoraja.skin.property.StringPropertyFactory;
 import bms.player.beatoraja.song.*;
 import bms.player.beatoraja.stream.StreamController;
 import bms.tool.mdprocessor.MusicDownloadProcessor;
@@ -126,8 +125,7 @@ public class MainController extends ApplicationAdapter {
 	protected TextureRegion black;
 	protected TextureRegion white;
 
-	public static Discord discord;
-
+	private final Array<MainStateListener> stateListener = new Array<MainStateListener>();
 
 	public MainController(Path f, Config config, PlayerConfig player, BMSPlayerMode auto, boolean songUpdated) {
 		this.auto = auto;
@@ -172,7 +170,7 @@ public class MainController extends ApplicationAdapter {
 			if(ir != null) {
 				if(irconfig.getUserid().length() == 0 || irconfig.getPassword().length() == 0) {
 				} else {
-					IRResponse<IRPlayerData> response = ir.login(irconfig.getUserid(), irconfig.getPassword());
+					IRResponse<IRPlayerData> response = ir.login(new IRAccount(irconfig.getUserid(), irconfig.getPassword(), ""));
 					if(response.isSucceeded()) {
 						irarray.add(new IRStatus(irconfig, ir, response.getData()));
 					} else {
@@ -199,6 +197,10 @@ public class MainController extends ApplicationAdapter {
 
 		timer = new TimerManager();
 		sound = new SystemSoundManager(config);
+		
+		if(config.isUseDiscordRPC()) {
+			stateListener.add(new DiscordListener());
+		}
 	}
 
 	public SkinOffset getOffset(int index) {
@@ -245,8 +247,6 @@ public class MainController extends ApplicationAdapter {
 		MainState newState = null;
 		switch (state) {
 		case MUSICSELECT:
-			discord = new Discord("In Music Select Menu", "");
-			discord.update();
 			if (this.bmsfile != null) {
 				exit();
 			} else {
@@ -264,13 +264,9 @@ public class MainController extends ApplicationAdapter {
 			newState = bmsplayer;
 			break;
 		case RESULT:
-			discord = new Discord("Result Screen", "");
-			discord.update();
 			newState = result;
 			break;
 		case COURSERESULT:
-			discord = new Discord("Result Screen", "");
-			discord.update();
 			newState = gresult;
 			break;
 		case CONFIG:
@@ -295,6 +291,7 @@ public class MainController extends ApplicationAdapter {
 			current = newState;
 			timer.setMainState(newState);
 			current.prepare();
+			updateMainStateListener(0);
 		}
 		if (current.getStage() != null) {
 			Gdx.input.setInputProcessor(new InputMultiplexer(current.getStage(), input.getKeyBoardInputProcesseor()));
@@ -663,6 +660,12 @@ public class MainController extends ApplicationAdapter {
 
 	public MessageRenderer getMessageRenderer() {
 		return messageRenderer;
+	}
+	
+	public void updateMainStateListener(int status) {
+		for(MainStateListener listener : stateListener) {
+			listener.update(current, status);
+		}
 	}
 
 	public long getPlayTime() {

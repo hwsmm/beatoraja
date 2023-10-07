@@ -315,6 +315,9 @@ public class BarRenderer {
 					});
 		} catch (Throwable e) {
 			randomFolderList = new ArrayList<RandomFolder>();
+			RandomFolder randomFolder = new RandomFolder();
+			randomFolder.setName("RANDOM SELECT");
+			randomFolderList.add(randomFolder);
 			e.printStackTrace();
 		}
 
@@ -1022,7 +1025,7 @@ public class BarRenderer {
 									try {
 										Object value = randomFolder.getFilter().get(key);
 										if (scoreData == null) {
-											if (value instanceof String && "" != (String) value) {
+											if (value instanceof String && !"".equals((String) value)) {
 												return false;
 											}
 											if (value instanceof Integer && 0 != (Integer) value) {

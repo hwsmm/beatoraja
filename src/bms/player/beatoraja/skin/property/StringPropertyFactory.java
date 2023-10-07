@@ -1,6 +1,7 @@
 package bms.player.beatoraja.skin.property;
 
 import bms.player.beatoraja.*;
+import bms.player.beatoraja.MainController.IRStatus;
 import bms.player.beatoraja.config.KeyConfiguration;
 import bms.player.beatoraja.config.SkinConfiguration;
 import bms.player.beatoraja.decide.MusicDecide;
@@ -176,12 +177,16 @@ public class StringPropertyFactory {
 		skinname(50, (state) -> {
 			if (state instanceof SkinConfiguration) {
 				return ((SkinConfiguration)state).getSelectedSkinHeader() != null ? ((SkinConfiguration)state).getSelectedSkinHeader().getName() : "";
+			} else if(state.getSkin() != null && state.getSkin().header != null) {
+				return state.getSkin().header.getName();
 			}
 			return "";
 		}),
 		skinauthor(51, (state) -> {
 			if (state instanceof SkinConfiguration) {
-				return ((SkinConfiguration)state).getSelectedSkinHeader() != null ? "" : "";
+				return ((SkinConfiguration)state).getSelectedSkinHeader() != null ? ((SkinConfiguration)state).getSelectedSkinHeader().getAuthor() : "";
+			} else if(state.getSkin() != null && state.getSkin().header != null) {
+				return state.getSkin().header.getAuthor();
 			}
 			return "";
 		}),
@@ -262,6 +267,21 @@ public class StringPropertyFactory {
 				return irconfig[0].getIrname();
 			}
 			return "";
+		}),
+		irUserName(1021, (state) -> {
+			final IRStatus[] ir = state.main.getIRStatus();
+			if (ir.length > 0) {
+				return ir[0].player.name;
+			}
+			return "";
+		}),
+		songhashmd5(1030, (state) -> {
+			final SongData song = state.resource.getSongdata();
+			return song != null ? song.getMd5() : "";
+		}),
+		songhashsha256(1031, (state) -> {
+			final SongData song = state.resource.getSongdata();
+			return song != null ? song.getSha256() : "";
 		}),
 		;
 		

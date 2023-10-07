@@ -12,9 +12,6 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonWriter.OutputType;
 
-import bms.player.beatoraja.AudioConfig.DriverType;
-import bms.player.beatoraja.AudioConfig.FrequencyType;
-
 /**
  * 各種設定項目。config.jsonで保持される
  *
@@ -156,7 +153,7 @@ public class Config implements Validatable {
 
 	private int irSendCount = 5;
 
-	private boolean useDiscordRPC = true;
+	private boolean useDiscordRPC = false;
 
 	private static final String[] DEFAULT_TABLEURL = { "http://bmsnormal2.syuriken.jp/table.html",
 			"http://bmsnormal2.syuriken.jp/table_insane.html",
@@ -169,21 +166,9 @@ public class Config implements Validatable {
 			"https://mocha-repository.info/table/dpn_header.json",
 			"https://mocha-repository.info/table/dpi_header.json",
 			"https://mocha-repository.info/table/ln_header.json",
-			"http://stellawingroad.web.fc2.com/new/pms.html",
+			"https://pmsdifficulty.xxxxxxxx.jp/_pastoral_insane_table.html",
 			"https://excln.github.io/table24k/table.html",
 	};
-
-	// TODO 以下の変数は別クラスに移行済(0.8.2)。バージョンが進んだら消す
-	int autosavereplay[] = {0,0,0,0};
-	private int audioDriver = 0;
-	private String audioDriverName = null;
-	private int audioDeviceBufferSize = 384;
-	private int audioDeviceSimultaneousSources = 128;
-	private int audioFreqOption = 1;
-	private int audioFastForward = 1;
-	private float systemvolume = 0.5f;
-	private float keyvolume = 0.5f;
-	private float bgvolume = 0.5f;
 
 	public Config() {
 	}
@@ -504,15 +489,6 @@ public class Config implements Validatable {
 
 		if(audio == null) {
 			audio = new AudioConfig();
-			audio.setDriver(audioDriver == 2 ? DriverType.PortAudio : DriverType.OpenAL);
-			audio.setDriverName(audioDriverName);
-			audio.setDeviceBufferSize(audioDeviceBufferSize);
-			audio.setDeviceSimultaneousSources(audioDeviceSimultaneousSources);
-			audio.setFreqOption(audioFreqOption == 1 ? FrequencyType.FREQUENCY : FrequencyType.UNPROCESSED);
-			audio.setFastForward(audioFastForward == 1 ? FrequencyType.FREQUENCY : FrequencyType.UNPROCESSED);
-			audio.setSystemvolume(systemvolume);
-			audio.setKeyvolume(keyvolume);
-			audio.setBgvolume(bgvolume);
 		}
 		audio.validate();
 		maxFramePerSecond = MathUtils.clamp(maxFramePerSecond, 0, 50000);
