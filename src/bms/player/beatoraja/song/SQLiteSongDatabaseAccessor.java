@@ -371,7 +371,7 @@ public class SQLiteSongDatabaseAccessor extends SQLiteDatabaseAccessor implement
 					qr.update(conn, "DELETE FROM song WHERE " + dsql.toString(), param);					
 				}
 				
-				Arrays.stream(paths).parallel().forEach((p) -> {
+				Arrays.asList(paths).parallelStream().forEach((p) -> {
 					try {
 						BMSFolder folder = new BMSFolder(p, bmsroot);
 						folder.processDirectory(property);
@@ -465,7 +465,7 @@ public class SQLiteSongDatabaseAccessor extends SQLiteDatabaseAccessor implement
 			}
 			
 			if(!containsBMS) {
-				dirs.forEach((bf) -> {
+				dirs.parallelStream().forEach((bf) -> {
 					try {
 						bf.processDirectory(property);
 					} catch (IOException | SQLException | IllegalArgumentException | ReflectiveOperationException | IntrospectionException e) {
@@ -533,12 +533,20 @@ public class SQLiteSongDatabaseAccessor extends SQLiteDatabaseAccessor implement
 					if (bmsondecoder == null) {
 						bmsondecoder = new BMSONDecoder(BMSModel.LNTYPE_LONGNOTE);
 					}
-					model = bmsondecoder.decode(path);
+					try {
+						model = bmsondecoder.decode(path);
+					} catch (Exception e) {
+						Logger.getGlobal().severe("Error while decoding bmson at path: " + pathname + e.getMessage());
+					}
 				} else {
 					if (bmsdecoder == null) {
 						bmsdecoder = new BMSDecoder(BMSModel.LNTYPE_LONGNOTE);
 					}
-					model = bmsdecoder.decode(path);
+					try {
+						model = bmsdecoder.decode(path);
+					} catch (Exception e) {
+						Logger.getGlobal().severe("Error while decoding bms at path: " + pathname + e.getMessage());
+					}
 				}
 
 				if (model == null) {

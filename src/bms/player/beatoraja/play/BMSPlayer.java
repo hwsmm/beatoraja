@@ -2,6 +2,7 @@ package bms.player.beatoraja.play;
 
 import static bms.player.beatoraja.CourseData.CourseDataConstraint.*;
 import static bms.player.beatoraja.skin.SkinProperty.*;
+import static bms.player.beatoraja.SystemSoundManager.SoundType.*;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -73,9 +74,6 @@ public class BMSPlayer extends MainState {
 	private PlayConfig replayConfig;
 
 	static final int TIME_MARGIN = 5000;
-
-	public static final int SOUND_READY = 0;
-	public static final int SOUND_PLAYSTOP = 1;
 
 	private int state = STATE_PRELOAD;
 
@@ -358,6 +356,8 @@ public class BMSPlayer extends MainState {
 				mods.add(mod);
 			}
 
+			int[][] patternArray = new int[model.getMode().player][];
+
 			List<PatternModifyLog> pattern = new ArrayList<PatternModifyLog>();
 			for(PatternModifier mod : mods) {
 				pattern = PatternModifier.merge(pattern,mod.modify(model));
@@ -366,8 +366,16 @@ public class BMSPlayer extends MainState {
 					assist = Math.max(assist, mod.getAssistLevel() == PatternModifier.AssistLevel.ASSIST ? 2 : 1);
 					score = false;
 				}
+
+				if (mod instanceof LaneShuffleModifier){
+					LaneShuffleModifier lmod = (LaneShuffleModifier)mod;
+					if(lmod.isToDisplay()){
+						patternArray[lmod.getModifyTarget()] = lmod.getRandomPattern(model.getMode());
+					}
+				}
 			}
 //			playinfo.pattern = pattern.toArray(new PatternModifyLog[pattern.size()]);
+			playinfo.laneShufflePattern = patternArray;
 
 		}
 
@@ -423,13 +431,10 @@ public class BMSPlayer extends MainState {
 
 		loadSkin(getSkinType());
 
-		setSound(SOUND_READY, "playready.wav", SoundType.SOUND, false);
-		setSound(SOUND_PLAYSTOP, "playstop.wav", SoundType.SOUND, false);
-
-		final String[] guideses = {"guide-pg.wav","guide-gr.wav","guide-gd.wav","guide-bd.wav","guide-pr.wav","guide-ms.wav"};
+		final SystemSoundManager.SoundType[] guideses = {GUIDESE_PG,GUIDESE_GR,GUIDESE_GD,GUIDESE_BD,GUIDESE_PR,GUIDESE_MS};
 		for(int i = 0;i < 6;i++) {
 			if(config.isGuideSE()) {
-				Path[] paths = getSoundPaths(guideses[i], SoundType.SOUND);
+				Path[] paths = main.getSoundManager().getSoundPaths(guideses[i]);
 				if(paths.length > 0) {
 					main.getAudioProcessor().setAdditionalKeySound(i, true, paths[0].toString());
 					main.getAudioProcessor().setAdditionalKeySound(i, false, paths[0].toString());
@@ -469,15 +474,17 @@ public class BMSPlayer extends MainState {
 
 		if (autoplay.mode == BMSPlayerMode.Mode.PRACTICE) {
 			getScoreDataProperty().setTargetScore(0, null, 0, null, model.getTotalNotes());
-			practice.create(model);
+			practice.create(model, main.getConfig());
 			state = STATE_PRACTICE;
 		} else {
 			
 			if(resource.getRivalScoreData() == null || resource.getCourseBMSModels() != null) {
-				ScoreData rivalScore = TargetProperty.getTargetProperty(config.getTargetid()).getTarget(main);
-				resource.setRivalScoreData(rivalScore);
+				ScoreData targetScore = TargetProperty.getTargetProperty(config.getTargetid()).getTarget(main);
+				resource.setTargetScoreData(targetScore);
+			} else {
+				resource.setTargetScoreData(resource.getRivalScoreData());
 			}
-			getScoreDataProperty().setTargetScore(score.getExscore(), score.decodeGhost(), resource.getRivalScoreData() != null ? resource.getRivalScoreData().getExscore() : 0 , null, model.getTotalNotes());
+			getScoreDataProperty().setTargetScore(score.getExscore(), score.decodeGhost(), resource.getTargetScoreData() != null ? resource.getTargetScoreData().getExscore() : 0 , null, model.getTotalNotes());
 		}
 	}
 
@@ -506,18 +513,18 @@ public class BMSPlayer extends MainState {
 		// 楽曲ロード
 		case STATE_PRELOAD:
 			if(config.isChartPreview()) {
-				if(timer.isTimerOn(TIMER_PLAY) && micronow > startpressedtime) {
-					timer.setTimerOff(TIMER_PLAY);
+				if(timer.isTimerOn(141) && micronow > startpressedtime) {
+					timer.setTimerOff(141);
 					lanerender.init(model);					
-				} else if(!timer.isTimerOn(TIMER_PLAY) && micronow == startpressedtime){
-					timer.setMicroTimer(TIMER_PLAY, micronow - starttimeoffset * 1000);				
+				} else if(!timer.isTimerOn(141) && micronow == startpressedtime){
+					timer.setMicroTimer(141, micronow - starttimeoffset * 1000);				
 				}				
 			}
 			
 			if (resource.mediaLoadFinished() && micronow > (skin.getLoadstart() + skin.getLoadend()) * 1000
 					&& micronow - startpressedtime > 1000000) {
 				if(config.isChartPreview()) {
-					timer.setTimerOff(TIMER_PLAY);
+					timer.setTimerOff(141);
 					lanerender.init(model);					
 				}
 				bga.prepare(this);
@@ -528,7 +535,7 @@ public class BMSPlayer extends MainState {
 						+ ((cmem - mem) / (1024 * 1024)) + "MB");
 				state = STATE_READY;
 				timer.setTimerOn(TIMER_READY);
-				play(SOUND_READY);
+				play(PLAY_READY);
 				Logger.getGlobal().info("STATE_READYに移行");
 			}
 			if(!timer.isTimerOn(TIMER_PM_CHARA_1P_NEUTRAL) || !timer.isTimerOn(TIMER_PM_CHARA_2P_NEUTRAL)){
@@ -595,7 +602,7 @@ public class BMSPlayer extends MainState {
 				bga.prepare(this);
 				state = STATE_READY;
 				timer.setTimerOn(TIMER_READY);
-				play(SOUND_READY);
+				play(PLAY_READY);
 				Logger.getGlobal().info("STATE_READYに移行");
 			}
 			break;
@@ -706,7 +713,7 @@ public class BMSPlayer extends MainState {
 					if (resource.mediaLoadFinished()) {
 						main.getAudioProcessor().stop((Note) null);
 					}
-					play(SOUND_PLAYSTOP);
+					play(PLAY_STOP);
 					Logger.getGlobal().info("STATE_FAILEDに移行");
 					break;
 				case PlayerConfig.GAUGEAUTOSHIFT_CONTINUE:
@@ -907,6 +914,7 @@ public class BMSPlayer extends MainState {
 		replay.date = Calendar.getInstance().getTimeInMillis() / 1000;
 		replay.keylog = main.getInputProcessor().getKeyInputLog();
 //		replay.pattern = playinfo.pattern;
+		replay.laneShufflePattern = playinfo.laneShufflePattern;
 		replay.rand = playinfo.rand;
 		replay.gauge = config.getGauge();
 		replay.sevenToNinePattern = config.getSevenToNinePattern();
@@ -976,7 +984,7 @@ public class BMSPlayer extends MainState {
 			if (resource.mediaLoadFinished()) {
 				main.getAudioProcessor().stop((Note) null);
 			}
-			play(SOUND_PLAYSTOP);
+			play(PLAY_STOP);
 			Logger.getGlobal().info("STATE_FAILEDに移行");
 		}
 	}
@@ -998,6 +1006,10 @@ public class BMSPlayer extends MainState {
 
 	public JudgeManager getJudgeManager() {
 		return judge;
+	}
+	
+	public ReplayData getOptionInformation() {
+		return playinfo;
 	}
 
 	public void update(int judge, long time) {

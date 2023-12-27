@@ -1,12 +1,9 @@
 package bms.player.beatoraja;
 
-import java.io.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
@@ -37,7 +34,7 @@ import bms.player.beatoraja.select.bar.TableBar;
 import bms.player.beatoraja.skin.SkinLoader;
 import bms.player.beatoraja.skin.SkinObject.SkinOffset;
 import bms.player.beatoraja.skin.SkinProperty;
-import bms.player.beatoraja.skin.property.StringPropertyFactory;
+import bms.player.beatoraja.skin.property.IntegerPropertyFactory;
 import bms.player.beatoraja.song.*;
 import bms.player.beatoraja.stream.StreamController;
 import bms.tool.mdprocessor.MusicDownloadProcessor;
@@ -47,9 +44,9 @@ import bms.tool.mdprocessor.MusicDownloadProcessor;
  *
  * @author exch
  */
-public class MainController extends ApplicationAdapter {
+public class MainController {
 
-	private static final String VERSION = "beatoraja 0.8.6";
+	private static final String VERSION = "beatoraja 0.8.7";
 
 	public static final boolean debug = false;
 
@@ -108,8 +105,6 @@ public class MainController extends ApplicationAdapter {
 	 * プレイデータアクセサ
 	 */
 	private PlayDataAccessor playdata;
-
-	static final Path configpath = Paths.get("config.json");
 
 	private SystemSoundManager sound;
 
@@ -196,7 +191,7 @@ public class MainController extends ApplicationAdapter {
 		}
 
 		timer = new TimerManager();
-		sound = new SystemSoundManager(config);
+		sound = new SystemSoundManager(this);
 		
 		if(config.isUseDiscordRPC()) {
 			stateListener.add(new DiscordListener());
@@ -309,21 +304,20 @@ public class MainController extends ApplicationAdapter {
 
 	}
 
-	@Override
 	public void create() {
 		final long t = System.currentTimeMillis();
 		sprite = new SpriteBatch();
 		SkinLoader.initPixmapResourcePool(config.getSkinPixmapGen());
 
 		try {
-			generator = new FreeTypeFontGenerator(Gdx.files.internal("skin/default/VL-Gothic-Regular.ttf"));
+			generator = new FreeTypeFontGenerator(Gdx.files.internal(config.getSystemfontpath()));
 			FreeTypeFontParameter parameter = new FreeTypeFontParameter();
 			parameter.size = 24;
 			systemfont = generator.generateFont(parameter);
 		} catch (GdxRuntimeException e) {
 			Logger.getGlobal().severe("System Font１読み込み失敗");
 		}
-		messageRenderer = new MessageRenderer();
+		messageRenderer = new MessageRenderer(config.getMessagefontpath());
 
 		input = new BMSPlayerInputProcessor(config, player);
 		switch(config.getAudioConfig().getDriver()) {
@@ -377,8 +371,8 @@ public class MainController extends ApplicationAdapter {
 		});
 		polling.start();
 
-		Array<String> targetlist = new Array(player.getTargetlist());
-		for(int i = 0;i < rivals.getRivals().length;i++) {
+		Array<String> targetlist = new Array<String>(player.getTargetlist());
+		for(int i = 0;i < rivals.getRivalCount();i++) {
 			targetlist.add("RIVAL_" + (i + 1));
 		}
 		TargetProperty.setTargets(targetlist.toArray(String.class), this);
@@ -414,7 +408,6 @@ public class MainController extends ApplicationAdapter {
 
 	private final StringBuilder message = new StringBuilder();
 
-	@Override
 	public void render() {
 //		input.poll();
 		timer.update();
@@ -574,7 +567,6 @@ public class MainController extends ApplicationAdapter {
         }
 	}
 
-	@Override
 	public void dispose() {
 		saveConfig();
 
@@ -613,17 +605,14 @@ public class MainController extends ApplicationAdapter {
 		Logger.getGlobal().info("全リソース破棄完了");
 	}
 
-	@Override
 	public void pause() {
 		current.pause();
 	}
 
-	@Override
 	public void resize(int width, int height) {
 		current.resize(width, height);
 	}
 
-	@Override
 	public void resume() {
 		current.resume();
 	}
@@ -837,72 +826,6 @@ public class MainController extends ApplicationAdapter {
 				}
 			}
 			message.stop();
-		}
-	}
-
-	/**
-	 * BGM、効果音セット管理用クラス
-	 *
-	 * @author exch
-	 */
-	public static class SystemSoundManager {
-		/**
-		 * 検出されたBGMセットのディレクトリパス
-		 */
-		private Array<Path> bgms = new Array<Path>();
-		/**
-		 * 現在のBGMセットのディレクトリパス
-		 */
-		private Path currentBGMPath;
-		/**
-		 * 検出された効果音セットのディレクトリパス
-		 */
-		private Array<Path> sounds = new Array<Path>();
-		/**
-		 * 現在の効果音セットのディレクトリパス
-		 */
-		private Path currentSoundPath;
-
-		public SystemSoundManager(Config config) {
-			if(config.getBgmpath() != null && config.getBgmpath().length() > 0) {
-				scan(Paths.get(config.getBgmpath()).toAbsolutePath(), bgms, "select.wav");
-			}
-			if(config.getSoundpath() != null && config.getSoundpath().length() > 0) {
-				scan(Paths.get(config.getSoundpath()).toAbsolutePath(), sounds, "clear.wav");
-			}
-			Logger.getGlobal().info("検出されたBGM Set : " + bgms.size + " Sound Set : " + sounds.size);
-		}
-
-		public void shuffle() {
-			if(bgms.size > 0) {
-				currentBGMPath = bgms.get((int) (Math.random() * bgms.size));
-			}
-			if(sounds.size > 0) {
-				currentSoundPath = sounds.get((int) (Math.random() * sounds.size));
-			}
-			Logger.getGlobal().info("BGM Set : " + currentBGMPath + " Sound Set : " + currentSoundPath);
-		}
-
-		public Path getBGMPath() {
-			return currentBGMPath;
-		}
-
-		public Path getSoundPath() {
-			return currentSoundPath;
-		}
-
-		private void scan(Path p, Array<Path> paths, String name) {
-			if (Files.isDirectory(p)) {
-				try (Stream<Path> sub = Files.list(p)) {
-					sub.forEach((t) -> {
-						scan(t, paths, name);
-					});
-					if (AudioDriver.getPaths(p.resolve(name).toString()).length > 0) {
-						paths.add(p);
-					}
-				} catch (IOException e) {
-				}
-			}
 		}
 	}
 

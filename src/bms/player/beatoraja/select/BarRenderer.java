@@ -1,5 +1,7 @@
 package bms.player.beatoraja.select;
 
+import static bms.player.beatoraja.SystemSoundManager.SoundType.*;
+
 import java.io.BufferedInputStream;
 import java.lang.reflect.Method;
 import java.nio.file.*;
@@ -461,7 +463,7 @@ public class BarRenderer {
 		final DirectoryBar parent = dir.size > 0 ? dir.last() : null;
 		dir.addLast(current);
 		updateBar(parent);
-		select.play(MusicSelector.SOUND_FOLDERCLOSE);
+		select.play(FOLDER_CLOSE);
 	}
 
 	public void addSearch(SearchWordBar bar) {
@@ -866,12 +868,12 @@ public class BarRenderer {
 		}
 		while(mov > 0) {
 			move(true);
-			select.play(MusicSelector.SOUND_SCRATCH);
+			select.play(SCRATCH);
 			mov--;
 		}
 		while(mov < 0) {
 			move(false);
-			select.play(MusicSelector.SOUND_SCRATCH);
+			select.play(SCRATCH);
 			mov++;
 		}
 	}
@@ -1162,6 +1164,7 @@ public class BarRenderer {
 			final MainController main = select.main;
 			final PlayerConfig config = select.resource.getPlayerConfig();
 			final ScoreDataCache rival = select.getRivalScoreDataCache();
+			final String rivalName = rival != null ? select.getRival().getName() : null;
 
 			final Array<SongData> songarray = new Array<>(bars.length);
 			for (Bar bar : bars) {
@@ -1179,7 +1182,11 @@ public class BarRenderer {
 						bar.setScore(select.getScoreDataCache().readScoreData(sd, config.getLnmode()));
 					}
 					if (rival != null && bar.getRivalScore() == null) {
-						bar.setRivalScore(rival.readScoreData(sd, config.getLnmode()));
+						final ScoreData rivalScore = rival.readScoreData(sd, config.getLnmode());
+						if(rivalScore != null) {
+							rivalScore.setPlayer(rivalName);							
+						}
+						bar.setRivalScore(rivalScore);
 					}
 					boolean[] replay = new boolean[MusicSelector.REPLAY];
 					for (int i = 0; i < MusicSelector.REPLAY; i++) {

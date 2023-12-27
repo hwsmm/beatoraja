@@ -1,6 +1,7 @@
 package bms.player.beatoraja.select;
 
 import static bms.player.beatoraja.skin.SkinProperty.*;
+import static bms.player.beatoraja.SystemSoundManager.SoundType.*;
 
 import java.nio.file.*;
 import java.util.logging.Logger;
@@ -89,14 +90,6 @@ public class MusicSelector extends MainState {
 	
 	private int panelstate;
 
-	public static final int SOUND_BGM = 0;
-	public static final int SOUND_SCRATCH = 1;
-	public static final int SOUND_FOLDEROPEN = 2;
-	public static final int SOUND_FOLDERCLOSE = 3;
-	public static final int SOUND_OPTIONCHANGE = 4;
-	public static final int SOUND_OPTIONOPEN = 5;
-	public static final int SOUND_OPTIONCLOSE = 6;
-
 	private BMSPlayerMode play = null;
 
 	private SongData playedsong = null;
@@ -139,14 +132,14 @@ public class MusicSelector extends MainState {
 	public void setRival(PlayerInformation rival) {
 		final RivalDataAccessor rivals = main.getRivalDataAccessor();
 		int index = -1;
-		for(int i = 0;i < rivals.getRivals().length;i++) {
-			if(rival == rivals.getRivals()[i]) {
+		for(int i = 0;i < rivals.getRivalCount();i++) {
+			if(rival == rivals.getRivalInformation(i)) {
 				index = i;
 				break;
 			}
 		}
-		this.rival = index != -1 ? rivals.getRivals()[index] : null;
-		rivalcache = index != -1 ? rivals.getRivalScoreDataCaches()[index] : null;
+		this.rival = index != -1 ? rivals.getRivalInformation(index) : null;
+		rivalcache = index != -1 ? rivals.getRivalScoreDataCache(index) : null;
 		bar.updateBar();
 		Logger.getGlobal().info("Rival変更:" + (rival != null ? rival.getName() : "なし"));
 	}
@@ -165,13 +158,6 @@ public class MusicSelector extends MainState {
 
 	public void create() {
 		main.getSoundManager().shuffle();
-		setSound(SOUND_BGM, "select.wav", SoundType.BGM, true);
-		setSound(SOUND_SCRATCH, "scratch.wav", SoundType.SOUND, false);
-		setSound(SOUND_FOLDEROPEN, "f-open.wav", SoundType.SOUND,false);
-		setSound(SOUND_FOLDERCLOSE, "f-close.wav", SoundType.SOUND,false);
-		setSound(SOUND_OPTIONCHANGE, "o-change.wav", SoundType.SOUND,false);
-		setSound(SOUND_OPTIONOPEN, "o-open.wav", SoundType.SOUND,false);
-		setSound(SOUND_OPTIONCLOSE, "o-close.wav", SoundType.SOUND,false);
 
 		play = null;
 		showNoteGraph = false;
@@ -188,7 +174,7 @@ public class MusicSelector extends MainState {
 		}
 
 		preview = new PreviewMusicProcessor(main.getAudioProcessor(), resource.getConfig());
-		preview.setDefault(getSound(SOUND_BGM));
+		preview.setDefault(getSound(SELECT));
 
 		final BMSPlayerInputProcessor input = main.getInputProcessor();
 		PlayModeConfig pc = (config.getMusicselectinput() == 0 ? config.getMode7()
@@ -283,6 +269,7 @@ public class MusicSelector extends MainState {
 				if (((SongBar) current).existsSong()) {
 					resource.clear();
 					if (resource.setBMSFile(Paths.get(song.getPath()), play)) {
+						// TODO 重複コード
 						final Queue<DirectoryBar> dir = this.getBarRender().getDirectory();
 						if(dir.size > 0 && !(dir.last() instanceof SameFolderBar)) {
 							Array<String> urls = new Array<String>(resource.getConfig().getTableURL());
@@ -302,6 +289,7 @@ public class MusicSelector extends MainState {
 								}
 							}
 						}
+						
 						if(main.getIRStatus().length > 0 && currentir == null) {
 							currentir = new RankingData();
 							main.getRankingDataCache().put(song, config.getLnmode(), currentir);
@@ -310,7 +298,7 @@ public class MusicSelector extends MainState {
 						resource.setRivalScoreData(current.getRivalScore());
 						
 						playedsong = song;
-						changeState(MainStateType.DECIDE);
+						main.changeState(MainStateType.DECIDE);
 					} else {
 						main.getMessageRenderer().addMessage("Failed to loading BMS : Song not found, or Song has error", 1200, Color.RED, 1);
 					}
@@ -324,6 +312,7 @@ public class MusicSelector extends MainState {
 				SongData song = ((ExecutableBar) current).getSongData();
 				resource.clear();
 				if (resource.setBMSFile(Paths.get(song.getPath()), play)) {
+					// TODO 重複コード
 					final Queue<DirectoryBar> dir = this.getBarRender().getDirectory();
 					if(dir.size > 0 && !(dir.last() instanceof SameFolderBar)) {
 						Array<String> urls = new Array<String>(resource.getConfig().getTableURL());
@@ -343,8 +332,9 @@ public class MusicSelector extends MainState {
 							}
 						}
 					}
+					
 					playedsong = song;
-					changeState(MainStateType.DECIDE);
+					main.changeState(MainStateType.DECIDE);
 				} else {
 					main.getMessageRenderer().addMessage("Failed to loading BMS : Song not found, or Song has error", 1200, Color.RED, 1);
 				}
@@ -370,7 +360,7 @@ public class MusicSelector extends MainState {
 						resource.clear();
 						resource.setAutoPlaySongs(paths.toArray(Path.class), false);
 						if(resource.nextSong()) {
-							changeState(MainStateType.DECIDE);
+							main.changeState(MainStateType.DECIDE);
 						}
 					}
 				}
@@ -383,9 +373,9 @@ public class MusicSelector extends MainState {
 		final BMSPlayerInputProcessor input = main.getInputProcessor();
 
 		if (input.getControlKeyState(ControlKeys.NUM6)) {
-			changeState(MainStateType.CONFIG);
+			main.changeState(MainStateType.CONFIG);
 		} else if (input.isActivated(KeyCommand.OPEN_SKIN_CONFIGURATION)) {
-			changeState(MainStateType.SKINCONFIG);
+			main.changeState(MainStateType.SKINCONFIG);
 		}
 
 		musicinput.input();
@@ -393,21 +383,17 @@ public class MusicSelector extends MainState {
 
 	public void shutdown() {
 		preview.stop();
-	}
-	
-	public void changeState(MainStateType type) {
-		main.changeState(type);
 		if (search != null) {
 			search.unfocus(this);
 		}
 		banners.disposeOld();
 		stagefiles.disposeOld();
 	}
-
+	
 	public void select(Bar current) {
 		if (current instanceof DirectoryBar) {
 			if (bar.updateBar(current)) {
-				play(SOUND_FOLDEROPEN);
+				play(FOLDER_OPEN);
 			}
 			execute(MusicSelectCommand.RESET_REPLAY);
 		} else {
@@ -530,8 +516,9 @@ public class MusicSelector extends MainState {
 				main.getRankingDataCache().put(songs[0], config.getLnmode(), songrank);
 			}
 			resource.setRankingData(songrank);
+			resource.setRivalScoreData(null);
 
-			changeState(MainStateType.DECIDE);
+			main.changeState(MainStateType.DECIDE);
 			return true;
 		}
 		return false;

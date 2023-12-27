@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import javax.swing.JOptionPane;
 
+import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
@@ -91,7 +92,7 @@ public class MainLoader extends Application {
 
 
 
-		if (Files.exists(MainController.configpath) && (bmsPath != null || auto != null)) {
+		if (Files.exists(Config.configpath) && (bmsPath != null || auto != null)) {
 			IRConnectionManager.getAllAvailableIRConnectionName();
 			play(bmsPath, auto, null, null, bmsPath != null);
 		} else {
@@ -99,7 +100,7 @@ public class MainLoader extends Application {
 		}
 	}
 
-	public static void play(Path bmsPath, BMSPlayerMode playerMode, Config config, PlayerConfig player, boolean songUpdated) {
+	public static void play(Path f, BMSPlayerMode playerMode, Config config, PlayerConfig player, boolean songUpdated) {
 		if(config == null) {
 			config = Config.read();
 		}
@@ -113,7 +114,7 @@ public class MainLoader extends Application {
 		}
 
 		try {
-			MainController main = new MainController(bmsPath, config, player, playerMode, songUpdated);
+			final MainController main = new MainController(f, config, player, auto, songUpdated);
 
 			Lwjgl3ApplicationConfiguration gdxConfig = new Lwjgl3ApplicationConfiguration();
 
@@ -149,7 +150,32 @@ public class MainLoader extends Application {
 
 			gdxConfig.setAudioConfig(config.getAudioConfig().getDeviceSimultaneousSources(), config.getAudioConfig().getDeviceBufferSize(), 1);
 
-			new Lwjgl3Application(main, gdxConfig);
+			new Lwjgl3Application(new ApplicationListener() {
+
+                                public void resume() {
+                                        main.resume();
+                                }
+
+                                public void resize(int width, int height) {
+                                        main.resize(width, height);
+                                }
+
+                                public void render() {
+                                        main.render();
+                                }
+
+                                public void pause() {
+                                        main.pause();
+                                }
+
+                                public void dispose() {
+                                        main.dispose();
+                                }
+
+                                public void create() {
+                                        main.create();
+                                }
+                        }, gdxConfig);
 		} catch (Throwable e) {
 			e.printStackTrace();
 			Logger.getGlobal().severe(e.getClass().getName() + " : " + e.getMessage());

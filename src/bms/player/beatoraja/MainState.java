@@ -181,58 +181,20 @@ public abstract class MainState {
 		BGM, SOUND
 	}
 
-	public void setSound(int id, String path, SoundType type, boolean loop) {
-		for(Path p :getSoundPaths(path, type)) {
-			String newpath = p.toString();
-			String oldpath = soundmap.get(id);
-			if (newpath.equals(oldpath)) {
-				return;
-			}
-			if (oldpath != null) {
-				main.getAudioProcessor().dispose(oldpath);
-			}
-			soundmap.put(id, newpath);
-			soundloop.put(id, loop);
-			return;
-		}
+	public String getSound(SystemSoundManager.SoundType sound) {
+		return main.getSoundManager().getSound(sound);
 	}
 	
-	public Path[] getSoundPaths(String filename, SoundType type) {
-		Path p = null;
-		switch (type) {
-		case BGM:
-			p = main.getSoundManager().getBGMPath();
-			break;
-		case SOUND:
-			p = main.getSoundManager().getSoundPath();
-			break;
-		}
-		
-		Array<Path> paths = new Array();
-		if(p != null) {
-			paths.addAll(AudioDriver.getPaths(p.resolve(filename).toString()));			
-		}
-		paths.addAll(AudioDriver.getPaths("defaultsound/" + filename.substring(filename.contains("/") || filename.contains("\\") ? Math.max(filename.lastIndexOf('/'),filename.lastIndexOf('\\')) + 1 : 0)));
-		return paths.toArray(Path.class);
+	public void play(SystemSoundManager.SoundType sound) {
+		play(sound, false);
 	}
-
-	public String getSound(int id) {
-		return soundmap.get(id);
+	
+	public void play(SystemSoundManager.SoundType sound, boolean loop) {
+		main.getSoundManager().play(sound, loop);
 	}
-
-	public void play(int id) {
-		final String path = soundmap.get(id);
-		if (path != null) {
-			main.getAudioProcessor().play(path, resource.getConfig().getAudioConfig().getSystemvolume(),
-					soundloop.get(id));
-		}
-	}
-
-	public void stop(int id) {
-		final String path = soundmap.get(id);
-		if (path != null) {
-			main.getAudioProcessor().stop(path);
-		}
+	
+	public void stop(SystemSoundManager.SoundType sound) {
+		main.getSoundManager().stop(sound);
 	}
 	
 	public enum MainStateType {
