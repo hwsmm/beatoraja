@@ -100,7 +100,7 @@ public class MainLoader extends Application {
 		}
 	}
 
-	public static void play(Path f, BMSPlayerMode playerMode, Config config, PlayerConfig player, boolean songUpdated) {
+	public static void play(Path f, BMSPlayerMode auto, Config config, PlayerConfig player, boolean songUpdated) {
 		if(config == null) {
 			config = Config.read();
 		}

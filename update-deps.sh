@@ -20,7 +20,7 @@ fi
 done
 
 gdxurl="https://repo1.maven.org/maven2/com/badlogicgames/gdx"
-gdxver=1.12.0
+gdxver=1.12.1
 
 down_maven()
 {
@@ -38,3 +38,4 @@ down_maven $gdxurl gdx-freetype $gdxver
 down_maven $gdxurl gdx-freetype-platform $gdxver -natives-desktop
 down_maven $gdxurl gdx $gdxver
 down_maven $gdxurl gdx-platform $gdxver -natives-desktop
+
