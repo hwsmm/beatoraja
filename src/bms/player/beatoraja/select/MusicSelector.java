@@ -5,6 +5,8 @@ import static bms.player.beatoraja.SystemSoundManager.SoundType.*;
 
 import java.nio.file.*;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Rectangle;
@@ -57,6 +59,9 @@ public class MusicSelector extends MainState {
 	 * 楽曲バー描画用
 	 */
 	private BarRenderer bar;
+	
+	private final BarManager manager = new BarManager(this);
+	
 	private MusicSelectInputProcessor musicinput;
 
 	private SearchTextField search;
@@ -119,7 +124,7 @@ public class MusicSelector extends MainState {
 			}
 		};
 		
-		bar = new BarRenderer(this);
+		bar = new BarRenderer(this, manager);
 		banners = new PixmapResourcePool(resource.getConfig().getBannerPixmapGen());
 		stagefiles = new PixmapResourcePool(resource.getConfig().getStagefilePixmapGen());
 		musicinput = new MusicSelectInputProcessor(this);
@@ -131,16 +136,10 @@ public class MusicSelector extends MainState {
 	
 	public void setRival(PlayerInformation rival) {
 		final RivalDataAccessor rivals = main.getRivalDataAccessor();
-		int index = -1;
-		for(int i = 0;i < rivals.getRivalCount();i++) {
-			if(rival == rivals.getRivalInformation(i)) {
-				index = i;
-				break;
-			}
-		}
+		final int index = IntStream.range(0, rivals.getRivalCount()).filter(i -> rival == rivals.getRivalInformation(i)).findFirst().orElse(-1);
 		this.rival = index != -1 ? rivals.getRivalInformation(index) : null;
 		rivalcache = index != -1 ? rivals.getRivalScoreDataCache(index) : null;
-		bar.updateBar();
+		manager.updateBar();
 		Logger.getGlobal().info("Rival変更:" + (rival != null ? rival.getName() : "なし"));
 	}
 
@@ -182,7 +181,7 @@ public class MusicSelector extends MainState {
 		input.setKeyboardConfig(pc.getKeyboardConfig());
 		input.setControllerConfig(pc.getController());
 		input.setMidiConfig(pc.getMidiConfig());
-		bar.updateBar();
+		manager.updateBar();
 
 		loadSkin(SkinType.MUSIC_SELECT);
 
@@ -203,7 +202,7 @@ public class MusicSelector extends MainState {
 	}
 
 	public void render() {
-		final Bar current = bar.getSelected();
+		final Bar current = manager.getSelected();
         if(timer.getNowTime() > getSkin().getInput()){
         	timer.switchTimer(TIMER_STARTINPUT, true);
         }
@@ -270,7 +269,7 @@ public class MusicSelector extends MainState {
 					resource.clear();
 					if (resource.setBMSFile(Paths.get(song.getPath()), play)) {
 						// TODO 重複コード
-						final Queue<DirectoryBar> dir = this.getBarRender().getDirectory();
+						final Queue<DirectoryBar> dir = manager.getDirectory();
 						if(dir.size > 0 && !(dir.last() instanceof SameFolderBar)) {
 							Array<String> urls = new Array<String>(resource.getConfig().getTableURL());
 
@@ -313,7 +312,7 @@ public class MusicSelector extends MainState {
 				resource.clear();
 				if (resource.setBMSFile(Paths.get(song.getPath()), play)) {
 					// TODO 重複コード
-					final Queue<DirectoryBar> dir = this.getBarRender().getDirectory();
+					final Queue<DirectoryBar> dir = manager.getDirectory();
 					if(dir.size > 0 && !(dir.last() instanceof SameFolderBar)) {
 						Array<String> urls = new Array<String>(resource.getConfig().getTableURL());
 
@@ -350,15 +349,12 @@ public class MusicSelector extends MainState {
 				readRandomCourse(play);
 			} else if (current instanceof DirectoryBar) {
 				if(play.mode == BMSPlayerMode.Mode.AUTOPLAY) {
-					Array<Path> paths = new Array<Path>();
-					for(Bar bar : ((DirectoryBar) current).getChildren()) {
-						if(bar instanceof SongBar && ((SongBar) bar).getSongData() != null && ((SongBar) bar).getSongData().getPath() != null) {
-							paths.add(Paths.get(((SongBar) bar).getSongData().getPath()));
-						}
-					}
-					if(paths.size > 0) {
+					final Path[] paths = Stream.of(((DirectoryBar) current).getChildren())
+						.filter(bar -> (bar instanceof SongBar && ((SongBar) bar).getSongData() != null && ((SongBar) bar).getSongData().getPath() != null))
+						.map(bar -> Paths.get(((SongBar) bar).getSongData().getPath())).toArray(Path[]::new);
+					if(paths.length > 0) {
 						resource.clear();
-						resource.setAutoPlaySongs(paths.toArray(Path.class), false);
+						resource.setAutoPlaySongs(paths, false);
 						if(resource.nextSong()) {
 							main.changeState(MainStateType.DECIDE);
 						}
@@ -392,7 +388,7 @@ public class MusicSelector extends MainState {
 	
 	public void select(Bar current) {
 		if (current instanceof DirectoryBar) {
-			if (bar.updateBar(current)) {
+			if (manager.updateBar(current)) {
 				play(FOLDER_OPEN);
 			}
 			execute(MusicSelectCommand.RESET_REPLAY);
@@ -410,11 +406,11 @@ public class MusicSelector extends MainState {
 	}
 
 	public void execute(MusicSelectCommand command) {
-		command.execute(this);
+		command.function.accept(this);
 	}
 
 	private void readCourse(BMSPlayerMode mode) {
-		final GradeBar gradeBar = (GradeBar) bar.getSelected();
+		final GradeBar gradeBar = (GradeBar) manager.getSelected();
 		if (!gradeBar.existsAllSongs()) {
 			Logger.getGlobal().info("段位の楽曲が揃っていません");
 			return;
@@ -427,7 +423,7 @@ public class MusicSelector extends MainState {
 	}
 
 	private void readRandomCourse(BMSPlayerMode mode) {
-		final RandomCourseBar randomCourseBar = (RandomCourseBar) bar.getSelected();
+		final RandomCourseBar randomCourseBar = (RandomCourseBar) manager.getSelected();
 		if (!randomCourseBar.existsAllSongs()) {
 			Logger.getGlobal().info("ランダムコースの楽曲が揃っていません");
 			return;
@@ -442,9 +438,9 @@ public class MusicSelector extends MainState {
 		}
 
 		if (_readCourse(mode, gradeBar)) {
-			bar.addRandomCourse(gradeBar, bar.getDirectoryString());
-			bar.updateBar();
-			bar.setSelected(gradeBar);
+			manager.addRandomCourse(gradeBar, manager.getDirectoryString());
+			manager.updateBar();
+			manager.setSelected(gradeBar);
 		} else {
 			main.getMessageRenderer().addMessage("Failed to loading Random Course : Some of songs not found", 1200, Color.RED, 1);
 			Logger.getGlobal().info("ランダムコースの楽曲が揃っていません");
@@ -454,11 +450,7 @@ public class MusicSelector extends MainState {
 	private boolean _readCourse(BMSPlayerMode mode, GradeBar gradeBar) {
 		resource.clear();
 		final SongData[] songs = gradeBar.getSongDatas();
-		Path[] files = new Path[songs.length];
-		int i = 0;
-		for (SongData song : songs) {
-			files[i++] = Paths.get(song.getPath());
-		}
+		final Path[] files = Stream.of(songs).map(song -> Paths.get(song.getPath())).toArray(Path[]::new);
 		if (resource.setCourseBMSFiles(files)) {
 			if (mode.mode == BMSPlayerMode.Mode.PLAY || mode.mode == BMSPlayerMode.Mode.AUTOPLAY) {
 				for (CourseData.CourseDataConstraint constraint : gradeBar.getCourseData().getConstraint()) {
@@ -567,10 +559,10 @@ public class MusicSelector extends MainState {
 
 	public boolean existsConstraint(CourseData.CourseDataConstraint constraint) {
 		CourseData.CourseDataConstraint[] cons;
-		if ((bar.getSelected() instanceof GradeBar)) {
-			cons = ((GradeBar) bar.getSelected()).getCourseData().getConstraint();
-		} else if (bar.getSelected() instanceof RandomCourseBar) {
-			cons = ((RandomCourseBar) bar.getSelected()).getCourseData().getConstraint();
+		if ((manager.getSelected() instanceof GradeBar)) {
+			cons = ((GradeBar) manager.getSelected()).getCourseData().getConstraint();
+		} else if (manager.getSelected() instanceof RandomCourseBar) {
+			cons = ((RandomCourseBar) manager.getSelected()).getCourseData().getConstraint();
 		} else {
 			return false;
 		}
@@ -584,11 +576,15 @@ public class MusicSelector extends MainState {
 	}
 
 	public Bar getSelectedBar() {
-		return bar.getSelected();
+		return manager.getSelected();
 	}
 
 	public BarRenderer getBarRender() {
 		return bar;
+	}
+
+	public BarManager getBarManager() {
+		return manager;
 	}
 
 	public PixmapResourcePool getBannerResource() {
@@ -603,12 +599,12 @@ public class MusicSelector extends MainState {
 		loadSelectedSongImages();
 
 		timer.setTimerOn(TIMER_SONGBAR_CHANGE);
-		if(preview.getSongData() != null && (!(bar.getSelected() instanceof SongBar) ||
-				((SongBar) bar.getSelected()).getSongData().getFolder().equals(preview.getSongData().getFolder()) == false))
+		if(preview.getSongData() != null && (!(manager.getSelected() instanceof SongBar) ||
+				((SongBar) manager.getSelected()).getSongData().getFolder().equals(preview.getSongData().getFolder()) == false))
 		preview.start(null);
 		showNoteGraph = false;
 
-		final Bar current = bar.getSelected();
+		final Bar current = manager.getSelected();
 		if(main.getIRStatus().length > 0) {
 			if(current instanceof SongBar && ((SongBar) current).existsSong()) {
 				currentir = main.getRankingDataCache().get(((SongBar) current).getSongData(), config.getLnmode());
@@ -629,7 +625,7 @@ public class MusicSelector extends MainState {
 	public void loadSelectedSongImages() {
 		// banner
 		// stagefile
-		final Bar current = bar.getSelected();
+		final Bar current = manager.getSelected();
 		resource.getBMSResource().setBanner(
 				current instanceof SongBar ? ((SongBar) current).getBanner() : null);
 		resource.getBMSResource().setStagefile(
@@ -641,7 +637,7 @@ public class MusicSelector extends MainState {
 	}
 
 	public PlayConfig getSelectedBarPlayConfig() {
-		Bar current = bar.getSelected();
+		Bar current = manager.getSelected();
 		PlayConfig pc = null;
 		if (current instanceof SongBar && ((SongBar)current).existsSong()) {
 			SongBar song = (SongBar) current;

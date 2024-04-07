@@ -244,10 +244,14 @@ public class Skin {
 
 	public void dispose() {
 		for (SkinObject obj : objects) {
-			obj.dispose();
+			if(!obj.isDisposed()) {
+				obj.dispose();
+			}
 		}
 		for (SkinObject obj : removes) {
-			obj.dispose();
+			if(!obj.isDisposed()) {
+				obj.dispose();
+			}
 		}
 	}
 
@@ -307,11 +311,11 @@ public class Skin {
 		return dh;
 	}
 	
-	public static class SkinObjectRenderer {
+	public static final class SkinObjectRenderer {
 		
 		private final SpriteBatch sprite;
 		
-		private ShaderProgram[] shaders = new ShaderProgram[6];
+		private final ShaderProgram[] shaders = new ShaderProgram[6];
 		
 		private int current;
 		
@@ -492,25 +496,6 @@ public class Skin {
 		}
 		return offsetAll;
 	}
-
-	// TODO ぽみゅキャラ系処理の分離
-
-	/**
-	 * ぽみゅキャラの各モーションの1周期の時間  0:1P_NEUTRAL 1:1P_FEVER 2:1P_GREAT 3:1P_GOOD 4:1P_BAD 5:2P_NEUTRAL 6:2P_GREAT 7:2P_BAD
-	 */
-	private int PMcharaTime[] = {1,1,1,1,1,1,1,1};
-
-	public int getPMcharaTime(int index) {
-		if(index < 0 || index >= PMcharaTime.length) return 1;
-		return PMcharaTime[index];
-	}
-
-	public void setPMcharaTime(int index, int value) {
-		if(index >= 0 && index < PMcharaTime.length && value >= 1) {
-			this.PMcharaTime[index] = value;
-		}
-	}
-
 
 	public void addCustomEvent(CustomEvent event) {
 		customEvents.put(event.getId(), event);

@@ -87,9 +87,9 @@ public class SearchTextField extends Stage {
 							SearchWordBar swb = new SearchWordBar(selector, textField.getText());
 							int count = swb.getChildren().length;
 							if (count > 0) {
-								selector.getBarRender().addSearch(swb);
-								selector.getBarRender().updateBar(null);
-								selector.getBarRender().setSelected(swb);
+								selector.getBarManager().addSearch(swb);
+								selector.getBarManager().updateBar(null);
+								selector.getBarManager().setSelected(swb);
 								textField.setText("");
 								textField.setMessageText(count + " song(s) found");
 								textFieldStyle.messageFontColor = Color.valueOf("00c0c0");
@@ -124,15 +124,12 @@ public class SearchTextField extends Stage {
 			search.setFocusTraversal(false);
 
 			search.setVisible(true);
-			search.addListener(new EventListener() {
-				@Override
-				public boolean handle(Event e) {
-					if (e.isHandled()) {
-						selector.main.getInputProcessor().getKeyBoardInputProcesseor()
-								.setTextInputMode(getKeyboardFocus() != null);
-					}
-					return false;
+			search.addListener((e) -> {
+				if (e.isHandled()) {
+					selector.main.getInputProcessor().getKeyBoardInputProcesseor()
+							.setTextInputMode(getKeyboardFocus() != null);
 				}
+				return false;
 			});			
 
 			screen = new Group();
@@ -176,6 +173,6 @@ public class SearchTextField extends Stage {
 	}
 
 	public Rectangle getSearchBounds() {
-		return new Rectangle(search.getX(), search.getY(), search.getWidth(), search.getHeight());
+		return search != null ? new Rectangle(search.getX(), search.getY(), search.getWidth(), search.getHeight()) : null;
 	}
 }
