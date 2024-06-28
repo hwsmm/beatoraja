@@ -307,6 +307,15 @@ public class IntegerPropertyFactory {
 				}
 				return Integer.MIN_VALUE;
 			};
+		case NUMBER_LANECOVER2:
+			return (state) -> {
+				if (state instanceof BMSPlayer) {
+					LaneRenderer laneRenderer = ((BMSPlayer) state).getLanerender();
+					int laneCover = (int)((1.0 - laneRenderer.getLiftRegion()) * laneRenderer.getLanecover() * 1000);
+					return laneCover;
+				}
+				return Integer.MIN_VALUE;
+			};
 		case NUMBER_LIFT1:
 			return (state) -> {
 				if (state instanceof BMSPlayer) {
@@ -1008,7 +1017,21 @@ public class IntegerPropertyFactory {
 		bpmguide(306, (state) -> (state.resource.getPlayerConfig().isBpmguide() ? 1 : 0)),
 
 		customjudge(301, (state) -> (state.resource.getPlayerConfig().isCustomJudge() ? 1 : 0)),
-		lnmode(308, (state) -> (state.resource.getPlayerConfig().getLnmode())),
+		lnmode(308, (state) -> {
+			if (state instanceof BMSPlayer || state instanceof MusicResult) {
+				SongData model = state.resource.getSongdata();
+				if (model.hasAnyLongNote() && !model.hasUndefinedLongNote()) { // #LNMODE defined
+					if (model.hasLongNote()) {
+						return 0;
+					} else if (model.hasChargeNote()) {
+						return 1;
+					} else {
+						return 2;
+					}
+				}
+			}
+			return state.resource.getPlayerConfig().getLnmode();
+		}),
 		notesdisplaytimingautoadjust(75, (state) -> (state.resource.getPlayerConfig().isNotesDisplayTimingAutoAdjust() ? 1 : 0)),
 		gaugeautoshift(78, (state) -> (state.resource.getPlayerConfig().getGaugeAutoShift())),
 		bottomshiftablegauge(341, (state) -> (state.resource.getPlayerConfig().getBottomShiftableGauge())),
