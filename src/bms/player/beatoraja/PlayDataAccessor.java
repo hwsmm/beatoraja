@@ -23,17 +23,17 @@ import bms.player.beatoraja.song.SongData;
 
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonWriter.OutputType;
-import com.badlogic.gdx.utils.StringBuilder;
+import com.badlogic.gdx.utils.CharArray;
 
 /**
  * プレイデータアクセス用クラス
- * 
+ *
  * @author exch
  */
 public final class PlayDataAccessor {
 
 	// TODO スコアハッシュを付与するかどうかの判定(前のスコアハッシュの正当性を確認できなかった時)
-	// TODO BATTLEは別ハッシュで登録したい}			
+	// TODO BATTLEは別ハッシュで登録したい}
 
 	private final String hashkey;
 
@@ -109,7 +109,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * 指定されたスコアデータを元にプレイヤーデータを更新する
-	 * 
+	 *
 	 * @param score スコアデータ
 	 * @param time プレイ時間
 	 */
@@ -138,7 +138,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * スコアデータを読み込む
-	 * 
+	 *
 	 * @param model
 	 *            対象のモデル
 	 * @param lnmode
@@ -182,7 +182,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * スコアデータを書き込む
-	 * 
+	 *
 	 * @param newscore
 	 *            スコアデータ
 	 * @param model
@@ -213,7 +213,7 @@ public final class PlayDataAccessor {
 		}
 
 		ScoreLog log = updateScore(score, newscore, hash, updateScore);
-		
+
 		Set<SongTrophy> l = new HashSet<SongTrophy>();
 		for(char c : score.getTrophy() != null ? score.getTrophy().toCharArray() : new char[0]) {
 			SongTrophy trophy = SongTrophy.getTrophy(c);
@@ -225,7 +225,7 @@ public final class PlayDataAccessor {
 		Set<SongTrophy> newTrophies = new HashSet<SongTrophy>();
 		// クリアトロフィー
 		int clear = newscore.getClear();
-		if(newscore.getGauge() != -1) {			
+		if(newscore.getGauge() != -1) {
 			if(clear >= Hard.id){
 				if(clear == ExHard.id) {
 					newTrophies.add(SongTrophy.EXHARD);
@@ -238,21 +238,21 @@ public final class PlayDataAccessor {
 				newTrophies.add(SongTrophy.EASY);
 			}
 		}
-			
+
 		// オプショントロフィー
 		// TODO FLIPの扱いは？
 		final SongTrophy[] optionTrophy = {SongTrophy.NORMAL,SongTrophy.MIRROR,SongTrophy.RANDOM, SongTrophy.R_RANDOM
 				,SongTrophy.S_RANDOM, SongTrophy.SPIRAL, SongTrophy.H_RANDOM, SongTrophy.ALL_SCR, SongTrophy.EX_RANDOM
 				,SongTrophy.EX_S_RANDOM};
-			
+
 		if(clear >= Easy.id) {
 			newTrophies.add(optionTrophy[Math.max(newscore.getOption() % 10, (newscore.getOption() / 10) % 10)]);
 		}
 
 		// newscore のトロフィーをマージ
 		l.addAll(newTrophies);
-		
-		StringBuilder sb = new StringBuilder();
+
+		CharArray sb = new CharArray();
 		for(SongTrophy trophy : l) {
 			sb.append(trophy.character);
 		}
@@ -269,7 +269,7 @@ public final class PlayDataAccessor {
 		}
 
 		if (scoredatalogdb != null) {
-			StringBuilder newScoresb = new StringBuilder();
+			CharArray newScoresb = new CharArray();
 			for(SongTrophy trophy : newTrophies) {
 				newScoresb.append(trophy.character);
 			}
@@ -295,7 +295,7 @@ public final class PlayDataAccessor {
 		updatePlayerData(newscore, time);
 		Logger.getGlobal().info("スコアデータベース更新完了 ");
 	}
-	
+
 	public ScoreData readScoreData(String hash, boolean ln, int lnmode, int option,
 			CourseData.CourseDataConstraint[] constraint) {
 		int hispeed = 0;
@@ -415,7 +415,7 @@ public final class PlayDataAccessor {
 		if (newscore.getClear() != Failed.id) {
 			score.setClearcount(score.getClearcount() + 1);
 		}
-		
+
 		ScoreLog log = updateScore(score, newscore, hash, updateScore);
 
 		score.setPlaycount(score.getPlaycount() + 1);
@@ -444,7 +444,7 @@ public final class PlayDataAccessor {
 					+ "," + score.getPlaycount() + "," + score.getOption() + "," + score.getRandom() + ","
 					+ score.getTrophy() + "," + score.getDate()).getBytes());
 			cipher_byte = md.digest();
-			StringBuilder sb = new StringBuilder(2 * cipher_byte.length);
+			CharArray sb = new CharArray(2 * cipher_byte.length);
 			for (byte b : cipher_byte) {
 				sb.append(String.format("%02x", b & 0xff));
 			}
@@ -457,7 +457,7 @@ public final class PlayDataAccessor {
 
 	private ScoreLog updateScore(ScoreData score, ScoreData newscore, String hash, boolean updateScore) {
 		ScoreLog log = new ScoreLog();
-		
+
 		log.setOldclear(score.getClear());
 		log.setClear(score.getClear());
 		if (score.getClear() < newscore.getClear()) {
@@ -482,7 +482,7 @@ public final class PlayDataAccessor {
 			log.setSha256(hash);
 			log.setCombo(newscore.getCombo());
 		}
-		
+
 		score.update(newscore, updateScore);
 
 		return log;
@@ -520,7 +520,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * リプレイデータを読み込む
-	 * 
+	 *
 	 * @param model
 	 *            対象のBMS
 	 * @param lnmode
@@ -550,7 +550,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * リプレイデータを書き込む
-	 * 
+	 *
 	 * @param rd
 	 *            リプレイデータ
 	 * @param model
@@ -592,7 +592,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * コースリプレイデータを読み込む
-	 * 
+	 *
 	 * @param hash
 	 *            対象のBMSハッシュ群
 	 * @param lnmode
@@ -641,7 +641,7 @@ public final class PlayDataAccessor {
 
 	/**
 	 * コースリプレイデータを書き込む
-	 * 
+	 *
 	 * @param rd
 	 *            リプレイデータ
 	 * @param hash
@@ -688,11 +688,11 @@ public final class PlayDataAccessor {
 
 	private String getReplayDataFilePath(String[] hashes, boolean ln, int lnmode, int index,
 			CourseData.CourseDataConstraint[] constraint) {
-		StringBuilder hash = new StringBuilder();
+		CharArray hash = new CharArray();
 		for (String s : hashes) {
 			hash.append(s.substring(0, 10));
 		}
-		StringBuilder sb = new StringBuilder();
+		CharArray sb = new CharArray();
 		for (CourseData.CourseDataConstraint c : constraint) {
 			if (c != CLASS && c != MIRROR && c != RANDOM) {
 				for(int i = 0;i < CourseDataConstraint.values().length;i++) {

@@ -12,7 +12,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.*;
-import com.badlogic.gdx.utils.StringBuilder;
+import com.badlogic.gdx.utils.CharArray;
 
 import bms.player.beatoraja.AudioConfig.DriverType;
 import bms.player.beatoraja.MainState.MainStateType;
@@ -73,7 +73,7 @@ public class MainController {
 	private MessageRenderer messageRenderer;
 
 	private MainState current;
-	
+
 	private TimerManager timer;
 
 	private Config config;
@@ -110,7 +110,7 @@ public class MainController {
 	private Thread screenshot;
 
 	private MusicDownloadProcessor download;
-	
+
 	private StreamController streamController;
 
 	public static final int offsetCount = SkinProperty.OFFSET_MAX + 1;
@@ -175,7 +175,7 @@ public class MainController {
 
 		}
 		ir = irarray.toArray(IRStatus.class);
-		
+
 		rivals.update(this);
 
 		switch(config.getAudioConfig().getDriver()) {
@@ -191,7 +191,7 @@ public class MainController {
 
 		timer = new TimerManager();
 		sound = new SystemSoundManager(this);
-		
+
 		if(config.isUseDiscordRPC()) {
 			stateListener.add(new DiscordListener());
 		}
@@ -212,11 +212,11 @@ public class MainController {
 	public PlayDataAccessor getPlayDataAccessor() {
 		return playdata;
 	}
-	
+
 	public RivalDataAccessor getRivalDataAccessor() {
 		return rivals;
 	}
-	
+
 	public RankingDataCache getRankingDataCache() {
 		return ircache;
 	}
@@ -404,7 +404,7 @@ public class MainController {
 
 	private long prevtime;
 
-	private final StringBuilder message = new StringBuilder();
+	private final CharArray message = new CharArray();
 
 	public void render() {
 //		input.poll();
@@ -678,7 +678,7 @@ public class MainController {
 	public MessageRenderer getMessageRenderer() {
 		return messageRenderer;
 	}
-	
+
 	public void updateMainStateListener(int status) {
 		for(MainStateListener listener : stateListener) {
 			listener.update(current, status);

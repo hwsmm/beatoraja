@@ -42,3 +42,5 @@ down_maven $gdxurl gdx-platform $gdxver -natives-desktop
 down_maven $gdxurl gdx-jnigen-loader 2.5.2
 down_maven "$gdxurl-controllers" gdx-controllers-core 2.2.4
 down_maven "$gdxurl-controllers" gdx-controllers-desktop 2.2.4
+
+down_maven "${gdxurl/gdx/jamepad}" jamepad 2.30.0.0

@@ -14,7 +14,7 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.Queue;
 import com.badlogic.gdx.utils.Sort;
-import com.badlogic.gdx.utils.StringBuilder;
+import com.badlogic.gdx.utils.CharArray;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +37,7 @@ import bms.player.beatoraja.song.SongInformationAccessor;
  * @author exch
  */
 public final class BarManager {
-	
+
 	private final MusicSelector select;
 	/**
 	 * 難易度表バー一覧
@@ -45,7 +45,7 @@ public final class BarManager {
 	private TableBar[] tables = new TableBar[0];
 
 	private Bar[] commands;
-	
+
 	private TableBar courses;
 
 	private HashBar[] favorites = new HashBar[0];
@@ -88,13 +88,13 @@ public final class BarManager {
 	public BarManager(MusicSelector select) {
 		this.select = select;
 	}
-	
+
 	void init() {
 		TableDataAccessor tdaccessor = new TableDataAccessor(select.resource.getConfig().getTablepath());
 
 		TableData[] unsortedtables = tdaccessor.readAll();
 		final List<TableData> sortedtables = new ArrayList<TableData>(unsortedtables.length);
-		
+
 		for(String url : select.resource.getConfig().getTableURL()) {
 			for(int i = 0;i < unsortedtables.length;i++) {
 				final TableData td = unsortedtables[i];
@@ -118,7 +118,7 @@ public final class BarManager {
 			} else {
 				return new TableBar(select, td,
 						new TableDataAccessor.DifficultyTableAccessor(select.resource.getConfig().getTablepath(), td.getUrl()));
-			}			
+			}
 		}).forEach(table::add);;
 
 		if(select.main.getIRStatus().length > 0) {
@@ -140,13 +140,13 @@ public final class BarManager {
 							song.setUrl(chart.url);
 							song.setAppendurl(chart.appendurl);
 							if(chart.mode != null) {
-								song.setMode(chart.mode.id);								
+								song.setMode(chart.mode.id);
 							}
 							return song;
 						}).toArray(SongData[]::new));
 						return tf;
 					}).toArray(TableData.TableFolder[]::new));
-					
+
 					td.setCourse(Stream.of(irtd.courses).map(course -> {
 						CourseData cd = new CourseData();
 						cd.setName(course.name);
@@ -160,11 +160,11 @@ public final class BarManager {
 							song.setUrl(chart.url);
 							song.setAppendurl(chart.appendurl);
 							if(chart.mode != null) {
-								song.setMode(chart.mode.id);								
+								song.setMode(chart.mode.id);
 							}
 							return song;
 						}).toArray(SongData[]::new));
-						
+
 						cd.setConstraint(course.constraint);
 						cd.setTrophy(Stream.of(course.trophy).map(t -> {
 						    TrophyData trophyData = new TrophyData();
@@ -173,13 +173,13 @@ public final class BarManager {
 						    trophyData.setScorerate(t.scorerate);
 							return trophyData;
 						}).toArray(TrophyData[]::new));
-						
+
 						cd.setRelease(true);
 						return cd;
 					}).toArray(CourseData[]::new));
-					
+
 					if(td.validate()) {
-						table.add(new TableBar(select, td, new TableDataAccessor.DifficultyTableAccessor(select.resource.getConfig().getTablepath(), td.getUrl())));						
+						table.add(new TableBar(select, td, new TableDataAccessor.DifficultyTableAccessor(select.resource.getConfig().getTablepath(), td.getUrl())));
 					}
 				}
 			} else {
@@ -218,7 +218,7 @@ public final class BarManager {
 //			cds[0] = new CourseData();
 //			cds[0].setName("FAVORITE");
 //		}
-		
+
 		favorites = Stream.of(cds).map(cd -> new HashBar(select, cd.getName(), cd.getSong())).toArray(HashBar[]::new);
 
 		Array<Bar> l = new Array<Bar>();
@@ -241,7 +241,7 @@ public final class BarManager {
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-		
+
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			randomFolderList = objectMapper.readValue(
@@ -258,7 +258,7 @@ public final class BarManager {
 
 		commands = l.toArray(Bar.class);
 	}
-	
+
 	public boolean updateBar() {
 		if (dir.size > 0) {
 			return updateBar(dir.last());
@@ -303,7 +303,7 @@ public final class BarManager {
 			isSortable = bar.isSortable();
 
 			if (bar instanceof ContainerBar && randomCourseResult.size > 0) {
-				StringBuilder str = new StringBuilder();
+				CharArray str = new CharArray();
 				for (Bar b : dir) {
 					str.append(b.getTitle()).append(" > ");
 				}
@@ -425,7 +425,7 @@ public final class BarManager {
 			bars.addAll(newcurrentsongs);
 
 			currentsongs = bars.toArray(Bar.class);
-			
+
 			select.getBarRender().updateBarText();
 
 			selectedindex = 0;
@@ -461,7 +461,7 @@ public final class BarManager {
 			select.getScoreDataProperty().update(currentsongs[selectedindex].getScore(),
 					currentsongs[selectedindex].getRivalScore());
 
-			StringBuilder str = new StringBuilder();
+			CharArray str = new CharArray();
 			for (Bar b : dir) {
 				str.append(b.getTitle()).append(" > ");
 			}
@@ -544,7 +544,7 @@ public final class BarManager {
 		return (folder.getFolder() != null && folder.getFolder().length > 0 || folder.getRandomCourse() != null && folder.getRandomCourse().length > 0) ?
 			new ContainerBar(folder.getName(), Stream.concat(
 					Stream.of(folder.getFolder()).map(child -> createCommandBar(select, child))
-					,Stream.of(folder.getRandomCourse()).map(RandomCourseBar::new)).toArray(Bar[]::new)) : 
+					,Stream.of(folder.getRandomCourse()).map(RandomCourseBar::new)).toArray(Bar[]::new)) :
 			new CommandBar(select, folder.getName(), folder.getSql(), folder.isShowall());
 	}
 
@@ -681,12 +681,12 @@ public final class BarManager {
 					if (rival != null && bar.getRivalScore() == null) {
 						final ScoreData rivalScore = rival.readScoreData(sd, config.getLnmode());
 						if(rivalScore != null) {
-							rivalScore.setPlayer(rivalName);							
+							rivalScore.setPlayer(rivalName);
 						}
 						bar.setRivalScore(rivalScore);
 					}
 					for(int i = 0;i < MusicSelector.REPLAY;i++) {
-						sb.setExistsReplay(i, main.getPlayDataAccessor().existsReplayData(sd.getSha256(), sd.hasUndefinedLongNote(),config.getLnmode(), i));						
+						sb.setExistsReplay(i, main.getPlayDataAccessor().existsReplayData(sd.getSha256(), sd.hasUndefinedLongNote(),config.getLnmode(), i));
 					}
 				} else if (bar instanceof GradeBar gb && gb.existsAllSongs()) {
 					String[] hash = new String[gb.getSongDatas().length];
@@ -700,7 +700,7 @@ public final class BarManager {
 					gb.setMirrorScore(main.getPlayDataAccessor().readScoreData(hash, ln, config.getLnmode(), 1, constraint));
 					gb.setRandomScore(main.getPlayDataAccessor().readScoreData(hash, ln, config.getLnmode(), 2, constraint));
 					for(int i = 0;i < MusicSelector.REPLAY;i++) {
-						gb.setExistsReplay(i, main.getPlayDataAccessor().existsReplayData(hash, ln ,config.getLnmode(), i, constraint));						
+						gb.setExistsReplay(i, main.getPlayDataAccessor().existsReplayData(hash, ln ,config.getLnmode(), i, constraint));
 					}
 				}
 
